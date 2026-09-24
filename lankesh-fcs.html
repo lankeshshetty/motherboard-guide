@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anatomy of a Motherboard</title>
+<style>
+:root{
+  --bg:#0a0f0c; --panel:#0e1a13; --line:#1e332a; --gold:#c9a34b; --teal:#3ddcb0;
+  --text:#e9efe9; --muted:#8ba69b; --card:#101c15;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.5}
+header{position:sticky;top:0;top:env(safe-area-inset-top,0px);z-index:50;background:rgba(10,15,12,.95);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);padding:14px 18px 10px}
+header h1{font-size:clamp(22px,5vw,30px);margin:0 0 4px;letter-spacing:-.02em}
+header p{margin:0;color:var(--muted);font-size:13px;max-width:640px}
+
+main{max-width:900px;margin:0 auto;padding:18px}
+
+.filters{display:flex;gap:6px;overflow-x:auto;padding:12px 0 16px;-webkit-overflow-scrolling:touch}
+.filters::-webkit-scrollbar{display:none}
+.filters button{flex:0 0 auto;background:none;border:1px solid var(--line);color:var(--muted);padding:7px 12px;border-radius:20px;font-size:12.5px;cursor:pointer;font-family:inherit;white-space:nowrap}
+.filters button.active{background:var(--teal);border-color:var(--teal);color:#06120c;font-weight:600}
+
+.board-wrap{position:relative;background:radial-gradient(ellipse at 30% 20%,#12261c,#081008 75%);border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:inset 0 0 40px rgba(0,0,0,.5)}
+svg{width:100%;height:auto;display:block;touch-action:manipulation}
+.hotspot{cursor:pointer}
+.hotspot circle{fill:#0c1712;stroke:var(--teal);stroke-width:.5;transition:transform .15s;transform-box:fill-box;transform-origin:center}
+.hotspot text{fill:var(--teal);font-size:2.6px;font-weight:700;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+.hotspot.dim circle{stroke:#2a3d33;fill:transparent;opacity:.25}
+.hotspot.dim text{fill:#4a5f54;opacity:.4}
+.hotspot:hover circle,.hotspot.active circle{stroke:var(--gold);transform:scale(1.35)}
+
+.info{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--teal);border-radius:6px;padding:14px 16px;margin-top:14px;min-height:64px}
+.info h3{margin:0 0 6px;font-size:15px;color:var(--gold)}
+.info p{margin:0;font-size:13.5px}
+
+.section-title{font-size:19px;margin:34px 0 4px}
+.section-sub{color:var(--muted);font-size:13px;margin:0 0 14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.grid .item{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.grid .item b{color:var(--teal);font-size:13px}
+.grid .item p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+
+.qcard{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:14px;margin-bottom:10px}
+.qcard p{margin:0 0 8px;font-size:14px}
+.qopts{display:flex;gap:8px;flex-wrap:wrap}
+.qopts button{background:none;border:1px solid var(--line);color:var(--text);padding:6px 10px;border-radius:4px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.qopts button.correct{background:var(--teal);color:#06120c;border-color:var(--teal)}
+.qopts button.wrong{background:#7a3030;border-color:#7a3030;color:#fff}
+
+footer{text-align:center;color:var(--muted);font-size:12px;padding:30px 10px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Anatomy of a Motherboard</h1>
+  <p>Filter by category, tap a numbered marker to zoom in and read what each part does — all 25 components on one board.</p>
+</header>
+
+<main>
+  <div class="filters" id="filters"></div>
+  <div class="board-wrap"><div id="board"></div></div>
+  <div class="info" id="info"><h3>Select a part</h3><p>Tap any marker on the board above.</p></div>
+
+  <h2 class="section-title">All 25 parts</h2>
+  <p class="section-sub">Quick reference for everything labeled above.</p>
+  <div class="grid" id="recap"></div>
+
+  <h2 class="section-title">Quick check</h2>
+  <p class="section-sub">Test what you just learned.</p>
+  <div id="quiz"></div>
+</main>
+
+<footer>Interactive motherboard guide · 25 labeled parts</footer>
+
+<script>
+const PARTS = [
+ {id:1,name:"24-Pin ATX Connector",cat:"power",x:14,y:10,d:"Main power connector from the PSU. Supplies 3.3V, 5V and 12V rails that power the board, RAM and chipset."},
+ {id:2,name:"CPU Power Connector (EPS)",cat:"power",x:40,y:6,d:"4/8-pin connector feeding dedicated power to the CPU through the VRM circuitry."},
+ {id:3,name:"SATA Power Header",cat:"power",x:88,y:66,d:"Delivers power to SATA drives when using an ATX power supply with SATA power cables."},
+ {id:4,name:"Molex Connector",cat:"power",x:93,y:78,d:"Legacy 4-pin power connector, still used for extra fan or peripheral power on some boards."},
+ {id:5,name:"CPU Socket",cat:"cpu",x:42,y:30,d:"Holds the processor and aligns its pins/pads with the board's electrical contacts."},
+ {id:6,name:"VRM (Voltage Regulator Module)",cat:"cpu",x:18,y:22,d:"Converts 12V input into the precise low voltage the CPU needs, filtering and regulating current."},
+ {id:7,name:"CPU Heatsink Mounting Holes",cat:"cpu",x:56,y:20,d:"Screw points around the socket used to secure the CPU cooler firmly against the processor."},
+ {id:8,name:"DIMM / RAM Slots",cat:"memory",x:68,y:26,d:"Slots that hold memory sticks. Most boards have 2 or 4, run in dual/quad channel for bandwidth."},
+ {id:9,name:"Memory Channel Traces",cat:"memory",x:76,y:38,d:"Copper pathways connecting RAM slots to the CPU's memory controller for high-speed data transfer."},
+ {id:10,name:"Northbridge (legacy)",cat:"chipset",x:46,y:48,d:"Older chipset component that managed CPU-to-RAM and PCIe communication; now integrated into modern CPUs."},
+ {id:11,name:"Southbridge / PCH",cat:"chipset",x:52,y:58,d:"Platform Controller Hub manages USB, SATA, audio and slower I/O, communicating with the CPU."},
+ {id:12,name:"Chipset Heatsink",cat:"chipset",x:58,y:52,d:"Passive cooler covering the PCH to dissipate heat generated during I/O operations."},
+ {id:13,name:"PCIe x16 Slot",cat:"expansion",x:33,y:62,d:"Full-length expansion slot mainly used for graphics cards, offering the highest bandwidth."},
+ {id:14,name:"PCIe x1 Slot",cat:"expansion",x:33,y:70,d:"Short expansion slot for smaller add-in cards like Wi-Fi or capture cards."},
+ {id:15,name:"Legacy PCI Slot",cat:"expansion",x:33,y:77,d:"Older, slower expansion slot largely phased out in favor of PCIe on modern boards."},
+ {id:16,name:"SATA Ports",cat:"storage",x:82,y:56,d:"Connect hard drives, SSDs and optical drives using the Serial ATA data interface."},
+ {id:17,name:"M.2 Slot",cat:"storage",x:68,y:62,d:"Compact slot for NVMe or SATA M.2 SSDs, mounted directly onto the board for faster storage."},
+ {id:18,name:"U.2 Connector",cat:"storage",x:90,y:62,d:"Interface used mainly in workstations for enterprise-grade NVMe drives via a cable connection."},
+ {id:19,name:"USB Headers",cat:"io",x:22,y:83,d:"Internal connectors linking front-panel or case USB ports to the motherboard."},
+ {id:20,name:"Audio Jacks (Rear I/O)",cat:"io",x:4,y:48,d:"Color-coded analog and digital audio ports for speakers, microphones and line-in devices."},
+ {id:21,name:"Ethernet Port",cat:"io",x:4,y:58,d:"RJ45 port providing wired network connectivity via the onboard LAN controller."},
+ {id:22,name:"BIOS/UEFI Chip",cat:"io",x:62,y:12,d:"Stores firmware that initializes hardware and boots the operating system on startup."},
+ {id:23,name:"CMOS Battery",cat:"misc",x:74,y:82,d:"Coin-cell battery that keeps BIOS settings and the system clock alive when powered off."},
+ {id:24,name:"Fan Headers",cat:"misc",x:26,y:38,d:"3/4-pin connectors that power and control case or CPU cooling fans, often with PWM speed control."},
+ {id:25,name:"Front Panel Header",cat:"misc",x:82,y:87,d:"Pin block connecting the case's power button, reset button and status LEDs to the board."},
+];
+const CATS = [
+ {k:"all",label:"All 25"},
+ {k:"power",label:"Power & Connectors"},
+ {k:"cpu",label:"Processor Area"},
+ {k:"memory",label:"Memory"},
+ {k:"chipset",label:"Chipset"},
+ {k:"expansion",label:"Expansion Slots"},
+ {k:"storage",label:"Storage"},
+ {k:"io",label:"I/O & Rear Panel"},
+ {k:"misc",label:"Miscellaneous"},
+];
+
+/* ---- illustrated PCB background ---- */
+function pcbSVG(){
+ let caps='', pins='', traces='';
+ for(let i=0;i<14;i++){ const cx=16+Math.random()*8, cy=18+i*3.2; caps+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="1" fill="#243a30" stroke="#3a5747" stroke-width="0.2"/>`; }
+ for(let i=0;i<10;i++){ const cx=63+Math.random()*18, cy=8+i*2.6; caps+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r=".9" fill="#243a30" stroke="#3a5747" stroke-width="0.2"/>`; }
+ for(let r=0;r<8;r++) for(let c=0;c<8;c++){ pins+=`<circle cx="${37+c*1.5}" cy="${25+r*1.5}" r=".35" fill="#caa14b" opacity=".55"/>`; }
+ const tracePts=[[8,4,50,90],[95,4,50,90],[8,4,95,4],[8,90,95,90],[42,30,18,22],[42,30,76,38],[52,58,58,52],[68,26,76,38],[26,38,42,30]];
+ tracePts.forEach(([x1,y1,x2,y2])=>{ traces+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#caa14b" stroke-width="0.25" opacity=".3"/>`; });
+
+ return `<svg viewBox="0 0 100 95" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+   <pattern id="weave" width="3" height="3" patternUnits="userSpaceOnUse">
+     <path d="M0 0 L3 3 M3 0 L0 3" stroke="#123322" stroke-width=".15"/>
+   </pattern>
+   <radialGradient id="pcbGlow" cx="35%" cy="25%" r="80%">
+     <stop offset="0%" stop-color="#173c29"/><stop offset="100%" stop-color="#081a10"/>
+   </radialGradient>
+  </defs>
+  <rect x="1" y="1" width="98" height="93" rx="3" fill="url(#pcbGlow)" stroke="#2a4438" stroke-width=".6"/>
+  <rect x="1" y="1" width="98" height="93" rx="3" fill="url(#weave)"/>
+  <circle cx="4" cy="4" r="1.2" fill="#caa14b" opacity=".6"/><circle cx="96" cy="4" r="1.2" fill="#caa14b" opacity=".6"/>
+  <circle cx="4" cy="91" r="1.2" fill="#caa14b" opacity=".6"/><circle cx="96" cy="91" r="1.2" fill="#caa14b" opacity=".6"/>
+  ${traces}
+  <!-- rear IO block -->
+  <rect x="1" y="42" width="9" height="22" fill="#0c1a12" stroke="#2a4438" stroke-width=".3"/>
+  <rect x="3" y="45" width="5" height="2.2" fill="#caa14b" opacity=".5"/>
+  <rect x="3" y="48.5" width="5" height="2.2" fill="#caa14b" opacity=".5"/>
+  <rect x="3" y="52" width="5" height="2.2" fill="#3ddcb0" opacity=".4"/>
+  <rect x="3" y="55.5" width="5" height="2.2" fill="#3ddcb0" opacity=".4"/>
+  <rect x="3" y="59" width="5" height="2.2" fill="#caa14b" opacity=".5"/>
+  <!-- CPU socket -->
+  <rect x="30" y="18" width="24" height="24" rx="1.5" fill="#0c1a12" stroke="#3ddcb0" stroke-width=".4"/>
+  <g>${pins}</g>
+  <circle cx="42" cy="30" r="10" fill="none" stroke="#5a7a6a" stroke-width=".3" stroke-dasharray="1 1"/>
+  <!-- VRM mosfets -->
+  <g>${Array.from({length:6}).map((_,i)=>`<rect x="${15+i*3.4}" y="10" width="2.6" height="6" rx=".4" fill="#1a2b22" stroke="#3a5747" stroke-width=".2"/>`).join('')}</g>
+  ${caps}
+  <!-- RAM slots -->
+  <g>${Array.from({length:4}).map((_,i)=>`<rect x="${62+i*8}" y="6" width="5" height="34" rx=".6" fill="#0c1a12" stroke="#caa14b" stroke-width=".35"/>`).join('')}</g>
+  <!-- chipset -->
+  <rect x="44" y="46" width="18" height="14" rx="1" fill="#111f18" stroke="#2a4438" stroke-width=".4"/>
+  <g stroke="#2a4438" stroke-width=".25">${Array.from({length:6}).map((_,i)=>`<line x1="${46+i*2.6}" y1="47" x2="${46+i*2.6}" y2="59"/>`).join('')}</g>
+  <!-- PCIe slots -->
+  <g>${Array.from({length:3}).map((_,i)=>`<rect x="14" y="${60+i*7.5}" width="42" height="3.4" rx=".4" fill="#0c1a12" stroke="#3ddcb0" stroke-width=".3"/>`).join('')}</g>
+  <!-- storage -->
+  <rect x="60" y="58" width="14" height="8" rx=".6" fill="#0c1a12" stroke="#caa14b" stroke-width=".3"/>
+  <g>${Array.from({length:4}).map((_,i)=>`<rect x="${78+i*4}" y="54" width="2.6" height="6" rx=".3" fill="#0c1a12" stroke="#3ddcb0" stroke-width=".3"/>`).join('')}</g>
+  <!-- battery -->
+  <circle cx="74" cy="82" r="3.4" fill="#1a1a1a" stroke="#8a8a8a" stroke-width=".4"/>
+  <!-- front panel + usb headers -->
+  <rect x="18" y="80" width="8" height="5" rx=".4" fill="#0c1a12" stroke="#3ddcb0" stroke-width=".3"/>
+  <rect x="78" y="84" width="8" height="4" rx=".4" fill="#0c1a12" stroke="#3ddcb0" stroke-width=".3"/>
+  <!-- fan header -->
+  <rect x="24" y="36" width="4" height="2.6" rx=".3" fill="#0c1a12" stroke="#caa14b" stroke-width=".3"/>
+  <g id="hotspots"></g>
+ </svg>`;
+}
+
+const boardEl = document.getElementById('board');
+let currentCat = 'all';
+
+function draw(){
+ boardEl.innerHTML = pcbSVG();
+ const g = boardEl.querySelector('#hotspots');
+ PARTS.forEach(p=>{
+  const show = currentCat==='all' || p.cat===currentCat;
+  const el = document.createElementNS('http://www.w3.org/2000/svg','g');
+  el.setAttribute('class','hotspot'+(show?'':' dim'));
+  el.setAttribute('data-id',p.id);
+  el.innerHTML = `<circle cx="${p.x}" cy="${p.y}" r="3"/><text x="${p.x}" y="${p.y}">${p.id}</text>`;
+  el.addEventListener('click', ()=>select(p.id));
+  g.appendChild(el);
+ });
+}
+
+function select(id){
+ const p = PARTS.find(x=>x.id===id);
+ boardEl.querySelectorAll('.hotspot').forEach(h=>h.classList.remove('active'));
+ boardEl.querySelector(`.hotspot[data-id="${id}"]`)?.classList.add('active');
+ const info = document.getElementById('info');
+ info.querySelector('h3').textContent = `${id}. ${p.name}`;
+ info.querySelector('p').textContent = p.d;
+ info.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+const filtersEl = document.getElementById('filters');
+CATS.forEach(c=>{
+ const b = document.createElement('button');
+ b.textContent = c.label;
+ b.className = c.k==='all' ? 'active' : '';
+ b.addEventListener('click', ()=>{
+  currentCat = c.k;
+  filtersEl.querySelectorAll('button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  draw();
+ });
+ filtersEl.appendChild(b);
+});
+draw();
+
+/* recap + quiz */
+const recap = document.getElementById('recap');
+PARTS.forEach(p=>{
+ const d = document.createElement('div'); d.className='item';
+ d.innerHTML = `<b>${p.id}. ${p.name}</b><p>${p.d}</p>`;
+ recap.appendChild(d);
+});
+const quizQs = [
+ {q:"Which part regulates and steadies voltage delivered to the CPU?", opts:["VRM","CMOS Battery","Northbridge"], a:0},
+ {q:"Which slot is typically used for a graphics card?", opts:["PCIe x1","PCIe x16","M.2"], a:1},
+ {q:"What keeps BIOS settings saved when the PC is unplugged?", opts:["Fan Header","CMOS Battery","Ethernet Port"], a:1},
+];
+const quizWrap = document.getElementById('quiz');
+quizQs.forEach(q=>{
+ const c = document.createElement('div'); c.className='qcard';
+ c.innerHTML = `<p>${q.q}</p><div class="qopts">${q.opts.map((o,i)=>`<button data-i="${i}">${o}</button>`).join('')}</div>`;
+ c.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+   c.querySelectorAll('button').forEach(b=>b.disabled=true);
+   const i=+btn.dataset.i;
+   btn.classList.add(i===q.a?'correct':'wrong');
+   if(i!==q.a) c.querySelector(`button[data-i="${q.a}"]`).classList.add('correct');
+  });
+ });
+ quizWrap.appendChild(c);
+});
+</script>
+</body>
+</html>
